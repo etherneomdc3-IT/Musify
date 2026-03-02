@@ -4,272 +4,138 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ReelTube</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
-/* ===== RESET ===== */
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{
---bg:#0a0a0f;
---surface:#13131a;
---accent:#ff2d55;
---accent2:#00d4ff;
---text:#f0f0f5;
---muted:rgba(240,240,245,0.5);
-}
+*{margin:0;padding:0;box-sizing:border-box}
 body{
-background:var(--bg);
-color:var(--text);
+background:#000;
 font-family:'DM Sans',sans-serif;
+color:#fff;
 overflow:hidden;
-height:100dvh;
-width:100vw;
-position:fixed;
 }
 
 /* ===== FEED ===== */
 #feed{
+height:100vh;
+width:100vw;
+overflow-y:scroll;
+scroll-snap-type:y mandatory;
+scroll-behavior:smooth;
+}
+
+/* Hide scrollbar */
+#feed::-webkit-scrollbar{display:none}
+
+/* ===== VIDEO ITEM ===== */
+.video-item{
+height:100vh;
 width:100%;
-height:100dvh;
 position:relative;
-overflow:hidden;
-}
-
-.video-slide{
-position:absolute;
-inset:0;
-width:100%;
-height:100%;
+scroll-snap-align:start;
 background:#000;
-transition:transform .45s cubic-bezier(.77,0,.175,1);
+display:flex;
+align-items:center;
+justify-content:center;
 }
 
-.video-slide iframe{
+.video-item iframe{
 width:100%;
 height:100%;
 border:none;
 pointer-events:none;
 }
 
-.video-slide.active iframe{pointer-events:auto}
-
-.video-slide::after{
-content:'';
-position:absolute;
-inset:0;
-background:linear-gradient(to top,rgba(0,0,0,.85)0%,transparent 40%,rgba(0,0,0,.3)100%);
-pointer-events:none;
-z-index:2;
+.video-item.active iframe{
+pointer-events:auto;
 }
 
-/* ===== INFO ===== */
+/* ===== OVERLAY INFO ===== */
 .video-info{
 position:absolute;
-bottom:80px;
-left:0;
-right:70px;
-padding:0 16px 16px;
+bottom:90px;
+left:15px;
+right:80px;
 z-index:10;
 }
 
 .video-channel{
 font-family:'Bebas Neue',cursive;
-font-size:1.4rem;
-letter-spacing:1px;
-color:var(--accent);
+font-size:1.5rem;
+color:#ff2d55;
 margin-bottom:6px;
 }
 
 .video-title{
 font-size:.9rem;
-line-height:1.4;
 opacity:.9;
-display:-webkit-box;
--webkit-line-clamp:2;
--webkit-box-orient:vertical;
-overflow:hidden;
+line-height:1.4;
 }
 
 /* ===== SIDE ACTIONS ===== */
 .side-actions{
 position:absolute;
 right:12px;
-bottom:90px;
+bottom:100px;
+display:flex;
+flex-direction:column;
+gap:20px;
+align-items:center;
 z-index:10;
-display:flex;
-flex-direction:column;
-align-items:center;
-gap:22px;
 }
 
-.action-btn{
+.action{
 display:flex;
 flex-direction:column;
 align-items:center;
-gap:4px;
+font-size:13px;
 cursor:pointer;
-background:none;
-border:none;
-color:var(--text);
 }
 
-.action-icon{
-width:44px;
-height:44px;
-background:rgba(255,255,255,.12);
+.action .icon{
+width:48px;
+height:48px;
 border-radius:50%;
+background:rgba(255,255,255,.15);
 display:flex;
 align-items:center;
 justify-content:center;
-font-size:1.2rem;
-transition:.15s;
+font-size:22px;
+margin-bottom:4px;
+transition:.2s;
 }
 
-.action-btn:active .action-icon{
-transform:scale(.88);
-background:rgba(255,45,85,.3);
-}
-
-.action-label{
-font-size:.65rem;
-color:var(--muted);
+.action:active .icon{
+transform:scale(.85);
+background:rgba(255,45,85,.4);
 }
 
 /* ===== TOP BAR ===== */
 #topbar{
 position:fixed;
-top:0;left:0;right:0;
-z-index:100;
-padding:10px 16px;
+top:0;
+left:0;
+right:0;
+padding:14px 16px;
 display:flex;
-justify-content:space-between;
-background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent);
-}
-
-.logo{
+justify-content:center;
+z-index:100;
+background:linear-gradient(to bottom,rgba(0,0,0,.8),transparent);
 font-family:'Bebas Neue',cursive;
 font-size:1.8rem;
 letter-spacing:2px;
-background:linear-gradient(135deg,var(--accent),var(--accent2));
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-}
-
-/* ===== SEARCH OVERLAY ===== */
-#search-overlay{
-position:fixed;
-inset:0;
-z-index:200;
-background:rgba(10,10,15,.97);
-display:flex;
-flex-direction:column;
-transform:translateY(-100%);
-transition:.4s cubic-bezier(.77,0,.175,1);
-}
-#search-overlay.open{transform:translateY(0)}
-
-.search-header{
-display:flex;
-gap:10px;
-padding:16px;
-}
-
-#search-input{
-flex:1;
-background:rgba(255,255,255,.06);
-border:1px solid rgba(255,255,255,.1);
-border-radius:100px;
-padding:10px 18px;
-color:var(--text);
-}
-
-#search-go{
-background:linear-gradient(135deg,var(--accent),#ff6b35);
-border:none;
-border-radius:100px;
-padding:10px 18px;
-color:#fff;
-cursor:pointer;
-}
-
-#search-results{
-flex:1;
-overflow-y:auto;
-padding:12px;
-}
-
-.result-item{
-display:flex;
-gap:12px;
-padding:10px;
-border-radius:12px;
-cursor:pointer;
-}
-
-.result-thumb{
-width:120px;
-height:68px;
-border-radius:8px;
-object-fit:cover;
-}
-
-.result-title{font-size:.85rem}
-.result-channel{font-size:.7rem;color:var(--muted)}
-
-.search-empty{text-align:center;padding:40px;color:var(--muted)}
-
-/* ===== DOTS ===== */
-#progress-dots{
-position:fixed;
-right:6px;
-top:50%;
-transform:translateY(-50%);
-display:flex;
-flex-direction:column;
-gap:5px;
-}
-.dot{
-width:3px;
-height:12px;
-background:rgba(255,255,255,.25);
-border-radius:10px;
-}
-.dot.active{
-height:22px;
-background:var(--accent);
 }
 </style>
 </head>
 <body>
 
-<div id="topbar">
-  <div class="logo">ReelTube</div>
-  <button onclick="openSearch()">🔍</button>
-</div>
+<div id="topbar">ReelTube</div>
 
 <div id="feed"></div>
-<div id="progress-dots"></div>
-
-<div id="search-overlay">
-  <div class="search-header">
-    <button onclick="closeSearch()">✕</button>
-    <input id="search-input" placeholder="Search videos...">
-    <button id="search-go" onclick="doSearch()">Go</button>
-  </div>
-  <div id="search-results"></div>
-</div>
 
 <script>
-let API_KEY = localStorage.getItem('yt_api_key') || '';
-let videos = [];
-let currentIdx = 0;
-let slides = [];
-let isDragging = false;
-let startY = 0;
-let deltaY = 0;
-const SWIPE_THRESHOLD = 60;
-
-const DEMO_VIDEOS = [
+let videos = [
 {id:'dQw4w9WgXcQ',title:'Never Gonna Give You Up',channel:'Rick Astley'},
 {id:'jNQXAC9IVRw',title:'Me at the zoo',channel:'jawed'},
 {id:'9bZkp7q19f0',title:'GANGNAM STYLE',channel:'PSY'},
@@ -277,168 +143,86 @@ const DEMO_VIDEOS = [
 {id:'RgKAFK5djSk',title:'See You Again',channel:'Wiz Khalifa'}
 ];
 
-function startApp(list){
-videos=list;
-currentIdx=0;
-buildFeed();
-}
+const feed = document.getElementById('feed');
+let observers = [];
 
+/* ===== BUILD FEED ===== */
 function buildFeed(){
-const feed=document.getElementById('feed');
 feed.innerHTML='';
-slides=[];
 
-videos.forEach((v,i)=>{
-const slide=document.createElement('div');
-slide.className='video-slide';
-slide.style.transform=`translateY(${i*100}%)`;
+videos.forEach(v=>{
+const div=document.createElement('div');
+div.className='video-item';
 
-slide.innerHTML=`
-<iframe src="https://www.youtube.com/embed/${v.id}?playsinline=1&autoplay=${i===0?1:0}&mute=1&loop=1&playlist=${v.id}&controls=1"
-allow="autoplay; encrypted-media" allowfullscreen></iframe>
+div.innerHTML=`
+<iframe 
+src="https://www.youtube.com/embed/${v.id}?playsinline=1&enablejsapi=1&controls=1&rel=0"
+allow="autoplay; encrypted-media"
+allowfullscreen></iframe>
+
 <div class="video-info">
 <div class="video-channel">${v.channel}</div>
 <div class="video-title">${v.title}</div>
 </div>
+
 <div class="side-actions">
-<button class="action-btn" onclick="likeVideo(this)">
-<div class="action-icon">❤️</div>
-<span class="action-label">LIKE</span>
-</button>
-<button class="action-btn" onclick="openYT('${v.id}')">
-<div class="action-icon">▶️</div>
-<span class="action-label">OPEN</span>
-</button>
+<div class="action" onclick="like(this)">
+<div class="icon">❤️</div>
+<span>Like</span>
+</div>
+<div class="action" onclick="openYT('${v.id}')">
+<div class="icon">▶️</div>
+<span>Open</span>
+</div>
 </div>
 `;
-if(i===0)slide.classList.add('active');
-feed.appendChild(slide);
-slides.push(slide);
+
+feed.appendChild(div);
 });
-buildDots();
+
+observeVideos();
 }
 
-function buildDots(){
-const dots=document.getElementById('progress-dots');
-dots.innerHTML='';
-videos.slice(0,8).forEach((_,i)=>{
-const d=document.createElement('div');
-d.className='dot'+(i===0?' active':'');
-dots.appendChild(d);
+/* ===== INTERSECTION OBSERVER (AUTO PLAY LIKE TIKTOK) ===== */
+function observeVideos(){
+
+const options={
+root:feed,
+threshold:0.7
+};
+
+const observer=new IntersectionObserver((entries)=>{
+entries.forEach(entry=>{
+const iframe=entry.target.querySelector('iframe');
+if(entry.isIntersecting){
+entry.target.classList.add('active');
+iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+}else{
+entry.target.classList.remove('active');
+iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+}
+});
+},options);
+
+document.querySelectorAll('.video-item').forEach(item=>{
+observer.observe(item);
 });
 }
 
-function updateDots(){
-document.querySelectorAll('.dot').forEach((d,i)=>{
-d.classList.toggle('active',i===currentIdx);
-});
-}
-
-function goTo(idx){
-if(idx<0||idx>=slides.length)return;
-slides[currentIdx].classList.remove('active');
-slides.forEach((s,i)=>{
-s.style.transform=`translateY(${(i-idx)*100}%)`;
-});
-currentIdx=idx;
-slides[currentIdx].classList.add('active');
-updateDots();
-}
-
-function likeVideo(btn){
-const icon=btn.querySelector('.action-icon');
+/* ===== LIKE ===== */
+function like(btn){
+const icon=btn.querySelector('.icon');
 icon.style.transform='scale(1.4)';
-setTimeout(()=>icon.style.transform='',300);
+setTimeout(()=>icon.style.transform='',200);
 }
 
+/* ===== OPEN YT ===== */
 function openYT(id){
 window.open(`https://www.youtube.com/watch?v=${id}`,'_blank');
 }
 
-/* TOUCH */
-const feed=document.getElementById('feed');
-
-feed.addEventListener('touchstart',e=>{
-startY=e.touches[0].clientY;
-isDragging=true;
-},{passive:true});
-
-feed.addEventListener('touchmove',e=>{
-if(!isDragging)return;
-deltaY=e.touches[0].clientY-startY;
-slides.forEach((s,i)=>{
-const base=(i-currentIdx)*100;
-s.style.transition='none';
-s.style.transform=`translateY(calc(${base}% + ${deltaY}px))`;
-});
-},{passive:true});
-
-feed.addEventListener('touchend',()=>{
-isDragging=false;
-slides.forEach(s=>s.style.transition='');
-if(Math.abs(deltaY)>SWIPE_THRESHOLD){
-if(deltaY<0)goTo(currentIdx+1);
-else goTo(currentIdx-1);
-}else goTo(currentIdx);
-deltaY=0;
-});
-
-/* SEARCH */
-function openSearch(){
-document.getElementById('search-overlay').classList.add('open');
-}
-
-function closeSearch(){
-document.getElementById('search-overlay').classList.remove('open');
-}
-
-async function doSearch(){
-const q=document.getElementById('search-input').value.trim();
-if(!q)return;
-
-const results=document.getElementById('search-results');
-results.innerHTML='Searching...';
-
-if(!API_KEY){
-results.innerHTML='<div class="search-empty">Add YouTube API key for real search.</div>';
-return;
-}
-
-try{
-const url=`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=15&q=${encodeURIComponent(q)}&key=${API_KEY}`;
-const res=await fetch(url);
-const data=await res.json();
-if(!data.items)return;
-
-const items=data.items.map(i=>({
-id:i.id.videoId,
-title:i.snippet.title,
-channel:i.snippet.channelTitle,
-thumb:i.snippet.thumbnails.medium.url
-}));
-
-results.innerHTML=items.map(v=>`
-<div class="result-item" onclick="selectVideo('${v.id}','${v.title.replace(/'/g,"")}','${v.channel.replace(/'/g,"")}')">
-<img class="result-thumb" src="${v.thumb}">
-<div>
-<div class="result-title">${v.title}</div>
-<div class="result-channel">${v.channel}</div>
-</div>
-</div>
-`).join('');
-
-}catch(e){
-results.innerHTML='<div class="search-empty">API error</div>';
-}
-}
-
-function selectVideo(id,title,channel){
-closeSearch();
-videos.unshift({id,title,channel});
 buildFeed();
-}
-
-startApp(DEMO_VIDEOS);
 </script>
+
 </body>
 </html>
