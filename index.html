@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ReelTube</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --accent: #ff2d55;
+    --accent2: #00d4ff;
+    --text: #f0f0f5;
+    --muted: rgba(240,240,245,0.5);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+    height: 100dvh;
+    width: 100vw;
+    position: fixed;
+    touch-action: none;
+  }
+
+  /* === FEED === */
+  #feed {
+    width: 100%;
+    height: 100dvh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .video-slide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    transition: transform 0.45s cubic-bezier(0.77,0,0.175,1);
+    will-change: transform;
+  }
+
+  .video-slide iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    pointer-events: none;
+  }
+
+  .video-slide.active iframe { pointer-events: auto; }
+
+  /* gradient overlays */
+  .video-slide::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 40%, rgba(0,0,0,0.3) 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* === INFO PANEL === */
+  .video-info {
+    position: absolute;
+    bottom: 80px;
+    left: 0;
+    right: 70px;
+    padding: 0 16px 16px;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .video-channel {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-bottom: 6px;
+    text-shadow: 0 0 20px rgba(255,45,85,0.5);
+  }
+
+  .video-title {
+    font-size: 0.88rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    opacity: 0.92;
+  }
+
+  /* === SIDE ACTIONS === */
+  .side-actions {
+    position: absolute;
+    right: 12px;
+    bottom: 90px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--text);
+    user-select: none;
+  }
+
+  .action-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(12px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: transform 0.15s, background 0.15s;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .action-btn:active .action-icon {
+    transform: scale(0.88);
+    background: rgba(255,45,85,0.3);
+  }
+
+  .action-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  /* === TOP BAR === */
+  #topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: env(safe-area-inset-top, 10px) 16px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .logo span { -webkit-text-fill-color: var(--text); }
+
+  #search-btn {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: var(--text);
+    font-size: 1rem;
+  }
+
+  #search-btn:active { background: rgba(255,45,85,0.3); }
+
+  /* === BOTTOM NAV === */
+  #bottomnav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 8px 0 env(safe-area-inset-bottom, 8px);
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    padding: 4px 20px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+
+  .nav-item.active { color: var(--text); }
+  .nav-item .ni-icon { font-size: 1.3rem; }
+  .nav-item .ni-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.5px; }
+
+  /* === SEARCH OVERLAY === */
+  #search-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(10,10,15,0.97);
+    backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    transform: translateY(-100%);
+    transition: transform 0.4s cubic-bezier(0.77,0,0.175,1);
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  #search-overlay.open { transform: translateY(0); }
+
+  .search-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  #search-input {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 100px;
+    padding: 10px 18px;
+    font-size: 0.95rem;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  #search-input:focus { border-color: var(--accent); }
+  #search-input::placeholder { color: var(--muted); }
+
+  #search-go {
+    background: linear-gradient(135deg, var(--accent), #ff6b35);
+    border: none;
+    border-radius: 100px;
+    padding: 10px 18px;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  #close-search {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  #search-results {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .result-item {
+    display: flex;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    align-items: flex-start;
+  }
+
+  .result-item:active { background: rgba(255,255,255,0.06); }
+
+  .result-thumb {
+    width: 120px;
+    min-width: 120px;
+    height: 68px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--surface);
+  }
+
+  .result-info { flex: 1; overflow: hidden; }
+
+  .result-title {
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+
+  .result-channel {
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .search-loading, .search-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .search-loading .spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* === API KEY MODAL === */
+  #api-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(16px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .modal-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  .modal-desc {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 20px;
+  }
+
+  .modal-desc a { color: var(--accent2); text-decoration: none; }
+
+  .modal-input {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.9rem;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    outline: none;
+    margin-bottom: 14px;
+  }
+
+  .modal-input:focus { border-color: var(--accent); }
+
+  .modal-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), #ff6b35);
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+
+  .modal-skip {
+    width: 100%;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 12px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  /* === PROGRESS DOTS === */
+  #progress-dots {
+    position: fixed;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .dot {
+    width: 3px;
+    height: 12px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 10px;
+    transition: all 0.3s;
+  }
+
+  .dot.active {
+    height: 22px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* === SWIPE HINT === */
+  #swipe-hint {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    animation: hintFade 3s ease forwards;
+    pointer-events: none;
+  }
+
+  @keyframes hintFade {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .hint-arrow {
+    font-size: 1.5rem;
+    animation: bounce 1s infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .hint-text {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 1px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<!-- API Key Modal -->
+<div id="api-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title">ReelTube</div>
+    <p class="modal-desc">Enter your YouTube Data API v3 key to enable search.<br><br>Get one free at <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → APIs & Services → YouTube Data API v3.</p>
+    <input id="api-key-input" class="modal-input" type="password" placeholder="AIzaSy..." autocomplete="off">
+    <button class="modal-btn" onclick="saveApiKey()">Start Watching</button>
+    <button class="modal-skip" onclick="skipApiKey()">Skip (use demo videos)</button>
+  </div>
+</div>
+
+<!-- Top Bar -->
+<div id="topbar">
+  <div class="logo">Reel<span>Tube</span></div>
+  <button id="search-btn" onclick="openSearch()">🔍</button>
+</div>
+
+<!-- Feed -->
+<div id="feed"></div>
+
+<!-- Progress dots -->
+<div id="progress-dots"></div>
+
+<!-- Swipe hint -->
+<div id="swipe-hint">
+  <div class="hint-arrow">↑</div>
+  <div class="hint-text">Swipe to explore</div>
+</div>
+
+<!-- Bottom Nav -->
+<div id="bottomnav">
+  <button class="nav-item active">
+    <span class="ni-icon">🏠</span>
+    <span class="ni-label">HOME</span>
+  </button>
+  <button class="nav-item" onclick="openSearch()">
+    <span class="ni-icon">🔎</span>
+    <span class="ni-label">SEARCH</span>
+  </button>
+  <button class="nav-item">
+    <span class="ni-icon">❤️</span>
+    <span class="ni-label">LIKED</span>
+  </button>
+  <button class="nav-item">
+    <span class="ni-icon">👤</span>
+    <span class="ni-label">PROFILE</span>
+  </button>
+</div>
+
+<!-- Search Overlay -->
+<div id="search-overlay">
+  <div class="search-header">
+    <button id="close-search" onclick="closeSearch()">✕</button>
+    <input id="search-input" type="search" placeholder="Search videos..." autocomplete="off">
+    <button id="search-go" onclick="doSearch()">Go</button>
+  </div>
+  <div id="search-results"></div>
+</div>
+
+<script>
+let API_KEY = 'AIzaSyBHmjB9qzNsxxfmC_NhP5R63sX2UMTqAjI';
+let videos = [];
+let currentIdx = 0;
+let slides = [];
+let isDragging = false;
+let startY = 0;
+let currentY = 0;
+const SWIPE_THRESHOLD = 60;
+
+// Demo videos (popular YouTube shorts/videos)
+const DEMO_VIDEOS = [
+  { id: 'dQw4w9WgXcQ', title: 'Never Gonna Give You Up - Rick Astley', channel: 'Rick Astley' },
+  { id: 'jNQXAC9IVRw', title: 'Me at the zoo - First YouTube video ever', channel: 'jawed' },
+  { id: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE', channel: 'officialpsy' },
+  { id: 'kJQP7kiw5Fk', title: 'Despacito - Luis Fonsi', channel: 'LuisFonsiVEVO' },
+  { id: 'RgKAFK5djSk', title: 'See You Again - Wiz Khalifa', channel: 'WizKhalifaVEVO' },
+  { id: 'OPf0YbXqDm0', title: 'Mark Ronson - Uptown Funk ft. Bruno Mars', channel: 'MarkRonsonVEVO' },
+  { id: 'YqeW9_5kURI', title: 'Justin Bieber - Baby ft. Ludacris', channel: 'JustinBieberVEVO' },
+  { id: 'fRh_vgS2dFE', title: 'Sorry - Justin Bieber', channel: 'JustinBieberVEVO' },
+  { id: 'bo_efYhYU2A', title: 'Shape of You - Ed Sheeran', channel: 'EdSheeranVEVO' },
+  { id: '60ItHLz5WEA', title: 'Alan Walker - Faded', channel: 'AlanWalkerMusic' },
+];
+
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (key) {
+    API_KEY = key;
+    localStorage.setItem('yt_api_key', key);
+  }
+  startApp(DEMO_VIDEOS);
+}
+
+function skipApiKey() {
+  startApp(DEMO_VIDEOS);
+}
+
+function startApp(videoList) {
+  document.getElementById('api-modal').style.display = 'none';
+  videos = videoList;
+  buildFeed();
+}
+
+function buildFeed() {
+  const feed = document.getElementById('feed');
+  feed.innerHTML = '';
+  slides = [];
+
+  videos.forEach((v, i) => {
+    const slide = document.createElement('div');
+    slide.className = 'video-slide';
+    slide.style.transform = `translateY(${i * 100}%)`;
+
+    const autoplay = i === 0 ? 1 : 0;
+    slide.innerHTML = `
+      <iframe src="https://www.youtube.com/embed/${v.id}?autoplay=${autoplay}&mute=${autoplay}&loop=1&playlist=${v.id}&controls=1&rel=0&modestbranding=1" 
+        allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+      <div class="video-info">
+        <div class="video-channel">${v.channel || 'YouTube'}</div>
+        <div class="video-title">${v.title}</div>
+      </div>
+      <div class="side-actions">
+        <button class="action-btn" onclick="likeVideo(this)">
+          <div class="action-icon">❤️</div>
+          <span class="action-label">LIKE</span>
+        </button>
+        <button class="action-btn">
+          <div class="action-icon">💬</div>
+          <span class="action-label">SHARE</span>
+        </button>
+        <button class="action-btn" onclick="openYT('${v.id}')">
+          <div class="action-icon">▶️</div>
+          <span class="action-label">OPEN</span>
+        </button>
+      </div>
+    `;
+    if (i === 0) slide.classList.add('active');
+    feed.appendChild(slide);
+    slides.push(slide);
+  });
+
+  buildDots();
+  setupTouch();
+  setupKeyboard();
+}
+
+function buildDots() {
+  const dots = document.getElementById('progress-dots');
+  dots.innerHTML = '';
+  const max = Math.min(videos.length, 8);
+  for (let i = 0; i < max; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    dots.appendChild(d);
+  }
+}
+
+function updateDots() {
+  const dots = document.querySelectorAll('.dot');
+  dots.forEach((d, i) => d.classList.toggle('active', i === currentIdx));
+}
+
+function goTo(idx) {
+  if (idx < 0 || idx >= slides.length) return;
+  slides[currentIdx].classList.remove('active');
+  slides.forEach((s, i) => {
+    s.style.transform = `translateY(${(i - idx) * 100}%)`;
+  });
+  currentIdx = idx;
+  slides[currentIdx].classList.add('active');
+  updateDots();
+}
+
+function likeVideo(btn) {
+  const icon = btn.querySelector('.action-icon');
+  icon.style.transform = 'scale(1.4)';
+  icon.style.background = 'rgba(255,45,85,0.5)';
+  setTimeout(() => {
+    icon.style.transform = '';
+  }, 300);
+}
+
+function openYT(id) {
+  window.open(`https://www.youtube.com/watch?v=${id}`, '_blank');
+}
+
+// Touch handling
+function setupTouch() {
+  const feed = document.getElementById('feed');
+
+  feed.addEventListener('touchstart', e => {
+    startY = e.touches[0].clientY;
+    isDragging = true;
+  }, { passive: true });
+
+  feed.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    currentY = e.touches[0].clientY - startY;
+    // Visual drag feedback
+    slides.forEach((s, i) => {
+      const baseOffset = (i - currentIdx) * 100;
+      const dragPercent = (currentY / window.innerHeight) * 100;
+      s.style.transform = `translateY(calc(${baseOffset}% + ${currentY}px))`;
+      s.style.transition = 'none';
+    });
+  }, { passive: true });
+
+  feed.addEventListener('touchend', () => {
+    isDragging = false;
+    slides.forEach(s => s.style.transition = '');
+    if (Math.abs(currentY) > SWIPE_THRESHOLD) {
+      if (currentY < 0) goTo(currentIdx + 1);
+      else goTo(currentIdx - 1);
+    } else {
+      // Snap back
+      goTo(currentIdx);
+    }
+    currentY = 0;
+  });
+
+  // Mouse wheel
+  let wheelLock = false;
+  feed.addEventListener('wheel', e => {
+    if (wheelLock) return;
+    wheelLock = true;
+    if (e.deltaY > 0) goTo(currentIdx + 1);
+    else goTo(currentIdx - 1);
+    setTimeout(() => wheelLock = false, 600);
+  });
+}
+
+function setupKeyboard() {
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goTo(currentIdx + 1);
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') goTo(currentIdx - 1);
+  });
+}
+
+// Search
+function openSearch() {
+  document.getElementById('search-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('search-input').focus(), 400);
+}
+
+function closeSearch() {
+  document.getElementById('search-overlay').classList.remove('open');
+}
+
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+async function doSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+
+  const results = document.getElementById('search-results');
+  results.innerHTML = '<div class="search-loading"><div class="spinner"></div>Searching...</div>';
+
+  if (!API_KEY) {
+    // Demo: filter from demo list or show message
+    results.innerHTML = `<div class="search-empty">🔑 Add a YouTube API key to enable real search.<br><br>Showing demo videos instead.</div>`;
+    const filtered = DEMO_VIDEOS.filter(v =>
+      v.title.toLowerCase().includes(q.toLowerCase()) ||
+      v.channel.toLowerCase().includes(q.toLowerCase())
+    );
+    if (filtered.length) renderResults(filtered);
+    return;
+  }
+
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=${encodeURIComponent(q)}&type=video&key=${API_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.error) {
+      results.innerHTML = `<div class="search-empty">❌ API Error: ${data.error.message}</div>`;
+      return;
+    }
+
+    const items = (data.items || []).map(item => ({
+      id: item.id.videoId,
+      title: item.snippet.title,
+      channel: item.snippet.channelTitle,
+      thumb: item.snippet.thumbnails?.medium?.url
+    }));
+
+    if (!items.length) {
+      results.innerHTML = '<div class="search-empty">No results found.</div>';
+      return;
+    }
+
+    renderResults(items);
+  } catch (err) {
+    results.innerHTML = `<div class="search-empty">❌ Failed to fetch. Check your API key.</div>`;
+  }
+}
+
+function renderResults(items) {
+  const results = document.getElementById('search-results');
+  results.innerHTML = items.map(v => `
+    <div class="result-item" onclick="loadVideo(${JSON.stringify(v).replace(/"/g, '&quot;')})">
+      <img class="result-thumb" src="${v.thumb || `https://img.youtube.com/vi/${v.id}/mqdefault.jpg`}" 
+        onerror="this.src='https://img.youtube.com/vi/${v.id}/mqdefault.jpg'" loading="lazy">
+      <div class="result-info">
+        <div class="result-title">${v.title}</div>
+        <div class="result-channel">${v.channel}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function loadVideo(v) {
+  closeSearch();
+  // Insert at top of feed
+  videos.unshift(v);
+  currentIdx = 0;
+  buildFeed();
+  setTimeout(() => goTo(0), 50);
+}
+
+// Auto-start with pre-filled API key
+window.addEventListener('load', () => {
+  localStorage.setItem('yt_api_key', API_KEY);
+  startApp(DEMO_VIDEOS);
+});
+</script>
+</body>
+</html>
